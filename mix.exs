@@ -20,6 +20,9 @@ defmodule IP.MixProject do
           files: ~w(lib mix.exs README* LICENSE* VERSIONS*),
           links: %{"GitHub" => "https://github.com/ityonemo/net_address"}
         ],
+      docs: [
+        source_url: "https://github.com/ityonemo/net_address"
+      ]
     ]
   end
 
