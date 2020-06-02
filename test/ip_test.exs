@@ -4,7 +4,7 @@ defmodule IPTest do
 
   test "malformed ip addresses don't parse" do
     assert_raise ArgumentError, fn ->
-      IP.from_string("this.is.not.an.ip")
+      IP.from_string!("this.is.not.an.ip")
     end
   end
 

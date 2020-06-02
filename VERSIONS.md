@@ -23,7 +23,14 @@
 - support for arista/cisco style mac address strings
 - support for generic is_ip guard
 
-## FUTURE VERSIONS
+## 0.2.0
 
 - support for IPv6 ranges and CIDRs
-- improved random ip selection
+- support for ports (IPv4)
+- support for the `:socket` module `:sockaddr_in4` type
+- IP.random
+
+## FUTURE VERSIONS
+
+- support for ports (IPv6) with `:sockaddr_in6`
+- better `IP.random/1,2` algorithms

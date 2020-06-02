@@ -88,7 +88,7 @@ defmodule IP.Range do
     %__MODULE__{first: first, last: last}
   end
 
-  @spec from_string(String.t) :: t
+  @spec from_string!(String.t) :: t
   @doc """
   converts a string to an ip range.
 
@@ -99,26 +99,42 @@ defmodule IP.Range do
 
   ```elixir
   iex> import IP
-  iex> IP.Range.from_string("10.0.0.3..10.0.0.5")
+  iex> IP.Range.from_string!("10.0.0.3..10.0.0.5")
   %IP.Range{
     first: {10, 0, 0, 3},
     last: {10, 0, 0, 5}
   }
   ```
   """
+  def from_string!(range_str) when is_binary(range_str) do
+    case from_string(range_str) do
+      {:ok, range} -> range
+      _ ->
+        raise ArgumentError, "invalid ip range string: \"#{range_str}\""
+    end
+  end
+  def from_string!(any) do
+    raise ArgumentError, "invalid parameter #{inspect any}"
+  end
+
+  @spec from_string(binary) :: {:error, :einval} | {:ok, t}
+  @doc """
+  Finds an ip range in a string, returning an ok or error tuple on failure.
+  """
   def from_string(range_str) when is_binary(range_str) do
     range_str
     |> String.split("..")
     |> Enum.map(&IP.from_string/1)
     |> case do
-      [first, last] when IP.is_ipv4(first) and IP.is_ipv4(last) ->
-        new(first, last)
-      [first, last] when IP.is_ipv6(first) and IP.is_ipv6(last) ->
-        new(first, last)
+      [{:ok, first}, {:ok, last}] when IP.is_ipv4(first) and IP.is_ipv4(last) ->
+        {:ok, new(first, last)}
+      [{:ok, first}, {:ok, last}] when IP.is_ipv6(first) and IP.is_ipv6(last) ->
+        {:ok, new(first, last)}
       _ ->
-        raise ArgumentError, "improper ip range string #{range_str}"
+        {:error, :einval}
     end
   end
+  def from_string(_), do: {:error, :einval}
 
   @spec to_string(t) :: String.t
   @doc """

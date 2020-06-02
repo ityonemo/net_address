@@ -25,6 +25,8 @@ defmodule IP do
   @typedoc "any ip address, either v4 or v6"
   @type addr :: v4 | v6
 
+  import Bitwise
+
   ####################################################################
   ## guards
 
@@ -128,19 +130,26 @@ defmodule IP do
   Converts an ip address from a string.
 
   ```elixir
-  iex> IP.from_string("255.255.255.255")
+  iex> IP.from_string!("255.255.255.255")
   {255, 255, 255, 255}
   ```
   """
-  @spec from_string(String.t) :: addr
-  def from_string(str) do
-    str
-    |> String.to_charlist
-    |> :inet.parse_address
-    |> case do
+  @spec from_string!(String.t) :: addr
+  def from_string!(str) do
+    case from_string(str) do
       {:ok, v} -> v
       _ -> raise ArgumentError, "malformed ip address string #{str}"
     end
+  end
+
+  @doc """
+  Finds an ip address in a string, returning an ok or error tuple on failure.
+  """
+  @spec from_string(String.t) :: {:ok, addr} | {:error, :einval}
+  def from_string(str) do
+    str
+    |> String.to_charlist
+    |> :inet.parse_address()
   end
 
   @spec next(v4) :: v4
@@ -177,6 +186,9 @@ defmodule IP do
   @spec mask(0..32, :v4_int) :: 0..0xFFFF_FFFF
   @spec mask(0..32, :v4_bin) :: <<_::32>>
   @spec mask(0..32, :v4)     :: v4
+  @spec mask(0..32, :v6_int) :: 0..0xFFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF
+  @spec mask(0..32, :v6_bin) :: <<_::128>>
+  @spec mask(0..32, :v6)     :: v6
   @doc """
   generates an ip mask with specified bit_length.
 
@@ -199,11 +211,16 @@ defmodule IP do
 
   iex> IP.mask(0)
   {0, 0, 0, 0}
+
+  iex> IP.mask(128, :v6)
+  {0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF}
+
+  iex> IP.mask(0, :v6)
+  {0, 0, 0, 0, 0, 0, 0, 0}
   """
   def mask(bit_length, mode \\ :v4)
   def mask(0, :v4_int), do: 0
   def mask(bit_length, :v4_int) do
-    import Bitwise
     <<i::unsigned-integer-size(32)>> = <<(-1 <<< (32-bit_length))::32>>
     i
   end
@@ -214,6 +231,16 @@ defmodule IP do
     bit_length
     |> mask(:v4_int)
     |> from_integer(:v4)
+  end
+  def mask(0, :v6_int), do: 0
+  def mask(bit_length, :v6_int) do
+    <<i::unsigned-integer-size(128)>> = <<(-1 <<< (128-bit_length))::128>>
+    i
+  end
+  def mask(bit_length, :v6) do
+    bit_length
+    |> mask(:v6_int)
+    |> from_integer(:v6)
   end
 
   @spec prefix(v4, 0..32) :: v4
@@ -232,6 +259,12 @@ defmodule IP do
     |> Bitwise.&&&(mask(bit_length, :v4_int))
     |> from_integer(:v4)
   end
+  def prefix(ip, bit_length) when is_ipv6(ip) do
+    ip
+    |> to_integer
+    |> Bitwise.&&&(mask(bit_length, :v6_int))
+    |> from_integer(:v6)
+  end
 
   @spec localhost(:v4) :: v4
   @spec localhost(:v6) :: v6
@@ -249,6 +282,38 @@ defmodule IP do
   def localhost(mode \\ :v4)
   def localhost(:v4), do: {127, 0, 0, 1}
   def localhost(:v6), do: {0, 0, 0, 0, 0, 0, 0, 1}
+
+  ####################################################################
+  ## random
+
+  @doc """
+  picks a random ip address from a range or a subnet.
+
+  You may exclude individual ip addresses, ranges, or subnets to the
+  `excludes` parameter and they won't be picked.
+
+  Note that subnets will pick the prefix and broadcast addresses, if
+  you would like to exclude those, you must add them explicitly to
+  the `excludes` parameter.
+
+  Warning: this algorithm is rather bad, so use only with blocks of
+  less than about 1024.
+  """
+  def random(range_or_subnet, excludes \\ [])
+  def random(range_or_subnet, excludes) do
+    range_or_subnet
+    |> Enum.map(&(&1))
+    |> Kernel.--(expand(excludes))
+    |> Enum.random
+  end
+
+  defp expand(excludes) do
+    Enum.flat_map(excludes, fn
+      exclude when is_ip(exclude) -> [exclude]
+      exclude = %type{} when type in [IP.Range, IP.Subnet]->
+        Enum.map(exclude, &(&1))
+    end)
+  end
 
   ####################################################################
   ## ETC
@@ -278,6 +343,13 @@ defmodule IP do
   %IP.Range{first: {10, 0, 0, 3}, last: {10, 0, 0, 7}}
   ```
 
+  and socket addresses:
+  ```
+  iex> import IP
+  iex> ~i"10.0.0.1:1234"
+  %IP.SockAddr{family: :inet, port: 1234, addr: {10, 0, 0, 1}}
+  ```
+
   You can also use `~i` for ip addresses and subnets with the `m` suffix
   in the context of matches.
 
@@ -303,11 +375,14 @@ defmodule IP do
     # check to see if it has a slash, in which case it's an ip range
     content = cond do
       String.contains?(definition, "/") ->
-        IP.Subnet.from_string(definition)
+        IP.Subnet.from_string!(definition)
       String.contains?(definition, "..") ->
-        IP.Range.from_string(definition)
+        IP.Range.from_string!(definition)
+      # only one colon is the sign of an ipv4 socket address
+      match?([_ , _], String.split(definition, ":")) ->
+        IP.SockAddr.from_string!(definition)
       true ->
-        IP.from_string(definition)
+        IP.from_string!(definition)
     end
 
     quote do

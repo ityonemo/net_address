@@ -29,18 +29,18 @@ defmodule IPTest.IPRangeTest do
     end
   end
 
-  describe "from_string/1" do
+  describe "from_string!/1" do
     test "correctly figures out an ipv4 subnet" do
       assert %Range{
         first: ~i"10.0.0.0",
         last: ~i"10.0.0.1"
-      } == Range.from_string("10.0.0.0..10.0.0.1")
+      } == Range.from_string!("10.0.0.0..10.0.0.1")
     end
 
     test "raises an argument error if something strange is passed" do
-      assert_raise ArgumentError, fn -> Range.from_string("foo") end
-      assert_raise ArgumentError, fn -> Range.from_string("10.0.0.2") end
-      assert_raise ArgumentError, fn -> Range.from_string("10.0.0.2/24") end
+      assert_raise ArgumentError, fn -> Range.from_string!("foo") end
+      assert_raise ArgumentError, fn -> Range.from_string!("10.0.0.2") end
+      assert_raise ArgumentError, fn -> Range.from_string!("10.0.0.2/24") end
     end
   end
 

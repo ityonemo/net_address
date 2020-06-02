@@ -51,14 +51,20 @@ defmodule IPTest.IPSubnetTest do
     end
   end
 
-  describe "from_string/1" do
+  describe "from_string!/1" do
     test "correctly figures out an ipv4 subnet" do
-      assert ~i"10.0.0.0/24" == Subnet.from_string("10.0.0.0/24")
+      assert ~i"10.0.0.0/24" == Subnet.from_string!("10.0.0.0/24")
+      assert ~i"10.0.0.0/24" == Subnet.from_string!("10.0.0.2/24")
+      assert ~i"::1/24" == Subnet.from_string!("::1/24")
+      assert ~i"::1/100" == Subnet.from_string!("::1/100")
     end
     test "raises an argument error if something strange is passed" do
-      assert_raise ArgumentError, fn -> Subnet.from_string("foo") end
-      assert_raise ArgumentError, fn -> Subnet.from_string("10.0.0.2") end
-      assert_raise ArgumentError, fn -> Subnet.from_string("10.0.0.2/24") end
+      assert_raise ArgumentError, fn -> Subnet.from_string!("foo") end
+      assert_raise ArgumentError, fn -> Subnet.from_string!("10.0.0.2") end
+      assert_raise ArgumentError, fn -> Subnet.from_string!("10.0.0.2/bar") end
+      assert_raise ArgumentError, fn -> Subnet.from_string!("10.0.0.2/-1") end
+      assert_raise ArgumentError, fn -> Subnet.from_string!("10.0.0.2/100") end
+      assert_raise ArgumentError, fn -> Subnet.from_string!(:foo) end
     end
   end
 

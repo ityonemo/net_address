@@ -4,7 +4,7 @@ defmodule IP.MixProject do
   def project do
     [
       app: :net_address,
-      version: "0.1.4",
+      version: "0.2.0",
       elixir: "~> 1.10",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -15,7 +15,7 @@ defmodule IP.MixProject do
          "coveralls.post": :test,
          "coveralls.html": :test],
       package: [
-          description: "Net Address Modules",
+          description: "IP address and Mac address tools",
           licenses: ["MIT"],
           files: ~w(lib mix.exs README* LICENSE* VERSIONS*),
           links: %{"GitHub" => "https://github.com/ityonemo/net_address"}
@@ -34,7 +34,9 @@ defmodule IP.MixProject do
     {:credo, "~> 1.3", only: [:dev, :test], runtime: false},
     {:excoveralls, "~> 0.11", only: :test, runtime: false},
     {:ex_doc, "~> 0.21.2", only: :dev, runtime: false},
-    {:dialyxir, "~> 0.5.1", only: :dev, runtime: false}
+    {:dialyxir, "~> 0.5.1", only: :dev, runtime: false},
+    # for testing ip.random
+    {:stream_data, "~> 0.5.0", only: :test}
   ]
 
 end

@@ -72,7 +72,21 @@ defmodule IP.Subnet do
   subnet for a given ip address, use `of/2`
   """
   def new(routing_prefix, bit_length)
-    when IP.is_ipv4(routing_prefix) and 0 <= bit_length and bit_length <= 32 do
+    when IP.is_ipv4(routing_prefix) and
+         0 <= bit_length and bit_length <= 32 do
+
+    unless routing_prefix == IP.prefix(routing_prefix, bit_length) do
+      raise ArgumentError, "the routing prefix is not a proper ip subnet prefix.  Use IP.Subnet.of/2 instead."
+    end
+
+    %__MODULE__{
+      routing_prefix: routing_prefix,
+      bit_length: bit_length
+    }
+  end
+  def new(routing_prefix, bit_length)
+    when IP.is_ipv6(routing_prefix) and
+         0 <= bit_length and bit_length <= 128 do
 
     unless routing_prefix == IP.prefix(routing_prefix, bit_length) do
       raise ArgumentError, "the routing prefix is not a proper ip subnet prefix.  Use IP.Subnet.of/2 instead."
@@ -98,6 +112,14 @@ defmodule IP.Subnet do
       bit_length: bit_length
     }
   end
+  def of(ip_addr, bit_length)
+    when IP.is_ipv6(ip_addr) and 0 <= bit_length and bit_length <= 128 do
+
+    %__MODULE__{
+      routing_prefix: IP.prefix(ip_addr, bit_length),
+      bit_length: bit_length
+    }
+  end
 
   @spec to_string(t) :: String.t
   @doc """
@@ -112,7 +134,7 @@ defmodule IP.Subnet do
     "#{IP.to_string(subnet.routing_prefix)}/#{subnet.bit_length}"
   end
 
-  @spec from_string(String.t) :: t | no_return
+  @spec from_string!(String.t) :: t | no_return
   @doc """
   converts a string to an ip subnet.
 
@@ -123,21 +145,46 @@ defmodule IP.Subnet do
 
   ```elixir
   iex> import IP
-  iex> IP.Subnet.from_string("10.0.0.0/24")
+  iex> IP.Subnet.from_string!("10.0.0.0/24")
   %IP.Subnet{
     routing_prefix: {10, 0, 0, 0},
     bit_length: 24
   }
   ```
   """
-  def from_string(subnet_str) do
-    case String.split(subnet_str, "/") do
-      [routing_prefix_str, bit_length_str] ->
-        new(IP.from_string(routing_prefix_str), String.to_integer(bit_length_str))
-      _ ->
+  def from_string!(subnet_str) do
+    case from_string(subnet_str) do
+      {:ok, subnet} -> subnet
+      {:error, :einval} ->
         raise ArgumentError, "malformed subnet string #{subnet_str}"
+      {:error, :invalid_subnet} ->
+        raise ArgumentError, "invalid subnet value in #{subnet_str}"
+      {:error, :not_a_binary} ->
+        raise ArgumentError, "invalid input #{inspect subnet_str}"
     end
   end
+
+  @doc """
+  Finds an ip subnet in a string, returning an ok or error tuple on failure.
+  """
+  def from_string(subnet_str) when is_binary(subnet_str) do
+    with [routing_prefix_str, bit_length_str] <- String.split(subnet_str, "/"),
+         {:ok, routing_prefix} <- IP.from_string(routing_prefix_str),
+         {bit_length, ""} <- Integer.parse(bit_length_str),
+         true <- valid_subnet(routing_prefix, bit_length) do
+      {:ok, of(routing_prefix, bit_length)}
+    else
+      list when is_list(list) -> {:error, :einval}
+      :error -> {:error, :invalid_subnet}
+      false -> {:error, :invalid_subnet}
+      error -> error
+    end
+  end
+  def from_string(_), do: {:error, :not_a_binary}
+
+  require IP
+  defp valid_subnet(ip, length) when IP.is_ipv4(ip), do: length in 0..32
+  defp valid_subnet(ip, length) when IP.is_ipv6(ip), do: length in 0..128
 
   @spec broadcast(t(IP.v4)) :: IP.v4
   @doc """
