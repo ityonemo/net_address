@@ -1,10 +1,10 @@
-defmodule IP.MixProject do
+defmodule NetAddress.MixProject do
   use Mix.Project
 
   def project do
     [
       app: :net_address,
-      version: "0.2.0",
+      version: "0.2.1",
       elixir: "~> 1.10",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
