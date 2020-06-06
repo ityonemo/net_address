@@ -5,19 +5,19 @@ defmodule MacTest do
   describe "converting string to mac" do
     test "fails when it's malformed" do
       assert_raise ArgumentError, fn ->
-        Mac.from_string("AB:12:34")
+        Mac.from_string!("AB:12:34")
       end
       assert_raise ArgumentError, fn ->
-        Mac.from_string("foo")
+        Mac.from_string!("foo")
       end
       assert_raise ArgumentError, fn ->
-        Mac.from_string("123:99:AB:CD:EF:12")
+        Mac.from_string!("123:99:AB:CD:EF:12")
       end
       assert_raise ArgumentError, fn ->
-        Mac.from_string("123:99:AB:CD:EF:12:34")
+        Mac.from_string!("123:99:AB:CD:EF:12:34")
       end
       assert_raise ArgumentError, fn ->
-        Mac.from_string("123:99:QX:CD:EF:12:34")
+        Mac.from_string!("123:99:QX:CD:EF:12:34")
       end
     end
   end

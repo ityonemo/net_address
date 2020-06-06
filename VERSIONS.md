@@ -30,6 +30,12 @@
 - support for the `:socket` module `:sockaddr_in4` type
 - IP.random
 
+## 0.2.1
+
+- fix mix project to have the correct name
+- 
+
+
 ## FUTURE VERSIONS
 
 - support for ports (IPv6) with `:sockaddr_in6`

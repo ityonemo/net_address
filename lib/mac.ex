@@ -98,63 +98,70 @@ defmodule Mac do
     |> Enum.join(":")
   end
 
-  @spec from_string(String.t) :: t
+
+  @spec from_string!(String.t) :: t
+  def from_string!(mac_string) do
+    case from_string(mac_string) do
+      {:ok, mac} -> mac
+      {:error, :einval} when is_binary(mac_string) ->
+        raise ArgumentError, "malformed mac address string #{mac_string}"
+      {:error, :einval} ->
+        raise ArgumentError, "#{inspect mac_string} is not a string"
+    end
+  end
+
+  @spec from_string(String.t) :: {:ok, t} | {:error, term}
   @doc """
   converts a mac address string and turns it into a proper
   mac address datatype.  Supports standard colon format,
   BMC hyphen format, and arista/cisco switch dot format.
 
   ```elixir
-  iex> Mac.from_string("06:AA:07:FB:B6:1E")
+  iex> Mac.from_string!("06:AA:07:FB:B6:1E")
   {0x06, 0xAA, 0x07, 0xFB, 0xB6, 0x1E}
 
-  iex> Mac.from_string("06:aa:07:fb:b6:1e")
+  iex> Mac.from_string!("06:aa:07:fb:b6:1e")
   {0x06, 0xAA, 0x07, 0xFB, 0xB6, 0x1E}
 
-  iex> Mac.from_string("06-AA-07-FB-B6-1E")
+  iex> Mac.from_string!("06-AA-07-FB-B6-1E")
   {0x06, 0xAA, 0x07, 0xFB, 0xB6, 0x1E}
 
-  iex> Mac.from_string("06aa.07fb.b61e")
+  iex> Mac.from_string!("06aa.07fb.b61e")
   {0x06, 0xAA, 0x07, 0xFB, 0xB6, 0x1E}
   ```
   """
-  def from_string(mac_string = <<a::binary-size(2), ?:,
-                                 b::binary-size(2), ?:,
-                                 c::binary-size(2), ?:,
-                                 d::binary-size(2), ?:,
-                                 e::binary-size(2), ?:,
-                                 f::binary-size(2)>>) do
-    from_list([a, b, c, d, e, f], mac_string)
+  def from_string(<<a::binary-size(2), ?:,
+                    b::binary-size(2), ?:,
+                    c::binary-size(2), ?:,
+                    d::binary-size(2), ?:,
+                    e::binary-size(2), ?:,
+                    f::binary-size(2)>>) do
+    from_list([a, b, c, d, e, f])
   end
-  def from_string(mac_string = <<a::binary-size(2), ?-,
-                                 b::binary-size(2), ?-,
-                                 c::binary-size(2), ?-,
-                                 d::binary-size(2), ?-,
-                                 e::binary-size(2), ?-,
-                                 f::binary-size(2)>>) do
-    from_list([a, b, c, d, e, f], mac_string)
+  def from_string(<<a::binary-size(2), ?-,
+                    b::binary-size(2), ?-,
+                    c::binary-size(2), ?-,
+                    d::binary-size(2), ?-,
+                    e::binary-size(2), ?-,
+                    f::binary-size(2)>>) do
+    from_list([a, b, c, d, e, f])
   end
-  def from_string(mac_string = <<a::binary-size(2),
-                                 b::binary-size(2), ?.,
-                                 c::binary-size(2),
-                                 d::binary-size(2), ?.,
-                                 e::binary-size(2),
-                                 f::binary-size(2)>>) do
-    from_list([a, b, c, d, e, f], mac_string)
+  def from_string(<<a::binary-size(2),
+                    b::binary-size(2), ?.,
+                    c::binary-size(2),
+                    d::binary-size(2), ?.,
+                    e::binary-size(2),
+                    f::binary-size(2)>>) do
+    from_list([a, b, c, d, e, f])
   end
-  def from_string(mac_string) when is_binary(mac_string) do
-    raise ArgumentError, "malformed mac address string #{mac_string}"
-  end
-  def from_string(mac_string) do
-    raise ArgumentError, "#{inspect mac_string} is not a string"
-  end
+  def from_string(_), do: {:error, :einval}
 
-  defp from_list(list, source) do
-    list
+  defp from_list(list) do
+    {:ok, list
     |> Enum.map(&String.to_integer(&1, 16))
-    |> List.to_tuple
+    |> List.to_tuple}
   rescue
-    _ -> reraise ArgumentError, "malformed mac address string #{source}", __STACKTRACE__
+    _ -> {:error, :einval}
   end
 
   @top_val 0x1_0000_0000_0000
@@ -229,7 +236,7 @@ defmodule Mac do
   ```
   """
   defmacro sigil_m({:<<>>, _meta, [string]}, _) do
-    content = Mac.from_string(string)
+    content = Mac.from_string!(string)
 
     quote do
       unquote(Macro.escape(content))
