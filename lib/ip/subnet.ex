@@ -177,10 +177,54 @@ defmodule IP.Subnet do
       list when is_list(list) -> {:error, :einval}
       :error -> {:error, :invalid_subnet}
       false -> {:error, :invalid_subnet}
+      {int, _} when is_integer(int) -> {:error, :einval}
       error -> error
     end
   end
   def from_string(_), do: {:error, :not_a_binary}
+
+  @doc """
+  finds an ip address and subnet together from a `config representation`
+  (this is an ip/cidr string where the ip is not necessarily the routing
+  prefix for the cidr block).
+
+  returns `{:ok, ip, subnet}` if the config string is valid;
+  `{:error, reason}` otherwise.
+  """
+  def config_from_string(config_str) when is_binary(config_str) do
+    with [ip_str, bit_length_str] <- String.split(config_str, "/"),
+         {:ok, ip} <- IP.from_string(ip_str),
+         {bit_length, ""} <- Integer.parse(bit_length_str),
+         true <- valid_subnet(ip, bit_length) do
+      {:ok, ip, of(ip, bit_length)}
+    else
+      list when is_list(list) -> {:error, :einval}
+      :error -> {:error, :invalid_subnet}
+      false -> {:error, :invalid_subnet}
+      {int, _} when is_integer(int) -> {:error, :einval}
+      error -> error
+    end
+  end
+  def config_from_string(_), do: {:error, :not_a_binary}
+
+  @doc """
+  finds an ip address and subnet together from a `config representation`
+  (this is an ip/cidr string where the ip is not necessarily the routing
+  prefix for the cidr block).
+
+  returns `{ip, subnet}` if the config string is valid; raises otherwise.
+  """
+  def config_from_string!(config_str) do
+    case config_from_string(config_str) do
+      {:ok, ip, subnet} -> {ip, subnet}
+      {:error, :einval} ->
+        raise ArgumentError, "malformed subnet string #{config_str}"
+      {:error, :invalid_subnet} ->
+        raise ArgumentError, "invalid subnet value in #{config_str}"
+      {:error, :not_a_binary} ->
+        raise ArgumentError, "invalid input #{inspect config_str}"
+    end
+  end
 
   require IP
   defp valid_subnet(ip, length) when IP.is_ipv4(ip), do: length in 0..32

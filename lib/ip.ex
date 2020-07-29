@@ -350,6 +350,13 @@ defmodule IP do
   %IP.SockAddr{family: :inet, port: 1234, addr: {10, 0, 0, 1}}
   ```
 
+  and ip/subnet combinations for configuration:
+  ```
+  iex> import IP
+  iex> ~i"10.0.0.4/24"config
+  {{10, 0, 0, 4}, %IP.Subnet{routing_prefix: {10, 0, 0, 0}, bit_length: 24}}
+  ```
+
   You can also use `~i` for ip addresses and subnets with the `m` suffix
   in the context of matches.
 
@@ -358,22 +365,31 @@ defmodule IP do
   ~i"10.0.x.3"m = {10, 0, 1, 3} # => matches x to 1
   ```
   """
-  defmacro sigil_i({:<<>>, meta, [definition]}, [?m]) do
+  defmacro sigil_i({:<<>>, meta, [definition]}, 'm') do
     caller = __CALLER__ |> Map.take([:file, :line]) |> Enum.map(&(&1))
     unless __CALLER__.context == :match, do: s(caller, "using a match in an inappropriate place")
     # perform matching
-    definition
-    |> String.split(".")
-    |> case do
+    case String.split(definition, ".") do
       ip = [_, _, _, _] ->
         {:{}, meta, Enum.map(ip, &token_to_matchv(&1, meta))}
       _ ->
         s(caller, "invalid ip match #{definition}")
     end
   end
-  defmacro sigil_i({:<<>>, _meta, [definition]}, _) do
+  defmacro sigil_i({:<<>>, _meta, [definition]}, 'config') do
+    case String.split(definition, "/") do
+      [ip_str, bit_size] ->
+        ip = IP.from_string!(ip_str)
+        subnet = IP.Subnet.of(ip, String.to_integer(bit_size))
+        {ip, subnet}
+      _ ->
+        raise ArgumentError, message: "invalid configuration definition #{definition}"
+    end
+    |> Macro.escape()
+  end
+  defmacro sigil_i({:<<>>, _meta, [definition]}, []) do
     # check to see if it has a slash, in which case it's an ip range
-    content = cond do
+    cond do
       String.contains?(definition, "/") ->
         IP.Subnet.from_string!(definition)
       String.contains?(definition, "..") ->
@@ -384,10 +400,7 @@ defmodule IP do
       true ->
         IP.from_string!(definition)
     end
-
-    quote do
-      unquote(Macro.escape(content))
-    end
+    |> Macro.escape()
   end
 
   defp s(caller, msg), do: raise SyntaxError, caller ++ [description: msg]

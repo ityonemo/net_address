@@ -10,7 +10,7 @@ defmodule IPTest.IPMatchTest do
     assert x == 10
 
     assert_raise MatchError, fn ->
-      ~i"192.168.x.32"m = {192, 167, 10, 32}
+      ~i"192.168._x.32"m = {192, 167, 10, 32}
     end
 
     ~i"192.168.a.b"m = {192, 168, 10, 32}
@@ -20,9 +20,9 @@ defmodule IPTest.IPMatchTest do
 
   test "ip address matches can pin values" do
     v = 10
-    ~i"192.168.^v.x"m = {192, 168, 10, 32}
+    ~i"192.168.^v._x"m = {192, 168, 10, 32}
     assert_raise MatchError, fn ->
-      ~i"192.168.^v.x"m = {192, 168, 9, 32}
+      ~i"192.168.^v._x"m = {192, 168, 9, 32}
     end
   end
 

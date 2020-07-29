@@ -33,7 +33,10 @@
 ## 0.2.1
 
 - fix mix project to have the correct name
-- 
+- enable bang functions for mac address
+
+## 0.2.2
+- add ~i//config mode that returns a ip/subnet tuple.
 
 
 ## FUTURE VERSIONS
