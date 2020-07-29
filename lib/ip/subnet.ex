@@ -212,7 +212,16 @@ defmodule IP.Subnet do
   (this is an ip/cidr string where the ip is not necessarily the routing
   prefix for the cidr block).
 
+  This function is useful if you have configuration files that specify
+  IP address/subnet identities in this fashion (for example `ifupdown`
+  or `netplan` configuration files)
+
   returns `{ip, subnet}` if the config string is valid; raises otherwise.
+
+  ```elixir
+  iex> IP.Subnet.config_from_string!("10.0.0.4/24")
+  {{10, 0, 0, 4}, %IP.Subnet{routing_prefix: {10, 0, 0, 0}, bit_length: 24}}
+  ```
   """
   def config_from_string!(config_str) do
     case config_from_string(config_str) do

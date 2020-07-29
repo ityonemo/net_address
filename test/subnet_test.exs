@@ -83,6 +83,35 @@ defmodule IPTest.IPSubnetTest do
     end
   end
 
+  describe "config_from_string/1" do
+    test "raises when invalid values are presented" do
+      assert_raise ArgumentError, fn ->
+        Subnet.config_from_string!("10.0.1.1.1/24")
+      end
+
+      assert_raise ArgumentError, fn ->
+        Subnet.config_from_string!("10.0.1000.1/24")
+      end
+
+      assert_raise ArgumentError, fn ->
+        Subnet.config_from_string!("10.0.0.1/150")
+      end
+
+      assert_raise ArgumentError, fn ->
+        Subnet.config_from_string!("not_an_ip_address")
+      end
+
+      assert_raise ArgumentError, fn ->
+        Subnet.config_from_string!("10.0.0.0")
+      end
+
+      assert_raise ArgumentError, fn ->
+        Subnet.config_from_string!(:foo)
+      end
+    end
+  end
+
+
   # GUARD TEST
 
   require Subnet

@@ -366,24 +366,27 @@ defmodule IP do
   ```
   """
   defmacro sigil_i({:<<>>, meta, [definition]}, 'm') do
-    caller = __CALLER__ |> Map.take([:file, :line]) |> Enum.map(&(&1))
-    unless __CALLER__.context == :match, do: s(caller, "using a match in an inappropriate place")
+    caller_meta = Keyword.merge([file: __CALLER__.file, line: __CALLER__.line], meta)
+    unless __CALLER__.context == :match do
+      s(caller_meta, "~s/#{definition}/m must be used inside of a match")
+    end
     # perform matching
     case String.split(definition, ".") do
       ip = [_, _, _, _] ->
-        {:{}, meta, Enum.map(ip, &token_to_matchv(&1, meta))}
+        {:{}, meta, Enum.map(ip, &token_to_matchv(&1, caller_meta))}
       _ ->
-        s(caller, "invalid ip match #{definition}")
+        s(caller_meta, "invalid ip match #{definition}")
     end
   end
-  defmacro sigil_i({:<<>>, _meta, [definition]}, 'config') do
+  defmacro sigil_i({:<<>>, meta, [definition]}, 'config') do
+    caller_meta = Keyword.merge([file: __CALLER__.file, line: __CALLER__.line], meta)
     case String.split(definition, "/") do
       [ip_str, bit_size] ->
         ip = IP.from_string!(ip_str)
         subnet = IP.Subnet.of(ip, String.to_integer(bit_size))
         {ip, subnet}
       _ ->
-        raise ArgumentError, message: "invalid configuration definition #{definition}"
+        s(caller_meta, "invalid configuration definition #{definition}")
     end
     |> Macro.escape()
   end
@@ -406,10 +409,10 @@ defmodule IP do
   defp s(caller, msg), do: raise SyntaxError, caller ++ [description: msg]
 
   @ctx [context: Elixir, import: Kernel]
-  defp token_to_matchv(<<x>> <> _ = int_str, _) when x in ?0..?9 do
+  defp token_to_matchv(<<x>> <> _ = int_str, meta) when x in ?0..?9 do
     int_val = String.to_integer(int_str)
     unless int_val in 0..255 do
-      raise ArgumentError, "#{int_val} is out of the range for ipv4 addresses"
+      s(meta, "#{int_val} is out of the range for ipv4 addresses")
     end
     int_val
   end

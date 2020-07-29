@@ -33,4 +33,35 @@ defmodule IPTest.IPMatchTest do
     ~i"192.168._.y"m = {192, 168, 9, 32}
     assert y = 32
   end
+
+  describe "sigil_i" do
+    test "raises on invalid ip forms" do
+      assert_raise SyntaxError,
+        "nofile:2: invalid ip match 10.1.1.1.1",
+        fn ->
+          Code.compile_string("""
+          import IP
+          ~i"10.1.1.1.1"m = {10, 1, 1, 1}
+          """)
+        end
+
+      assert_raise SyntaxError,
+        "nofile:2: 1000 is out of the range for ipv4 addresses",
+        fn ->
+          Code.compile_string("""
+          import IP
+          ~i"10.1000.3.1"m = {10, 1, 1, 1}
+          """)
+        end
+
+      assert_raise SyntaxError,
+        "nofile:2: ~s/10.1.1.1/m must be used inside of a match",
+        fn ->
+          Code.compile_string("""
+          import IP
+          ~i"10.1.1.1"m
+          """)
+        end
+    end
+  end
 end

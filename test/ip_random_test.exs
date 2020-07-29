@@ -3,6 +3,8 @@ defmodule IPTest.IPRandomTest do
 
   use ExUnitProperties
 
+  @moduletag :property
+
   property "random numbers fall in their subnet" do
     check all address_int <- integer(0..0xFFFF_FFFF),
               cidr <- integer(0..12) do
