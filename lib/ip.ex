@@ -360,7 +360,6 @@ defmodule IP do
   You can also use `~i` for ip addresses and subnets with the `m` suffix
   in the context of matches.
 
-  ### Example:
   ```
   iex> import IP
   iex> fn -> ~i"10.0.x.3"m = {10, 0, 1, 3}; x end.()
