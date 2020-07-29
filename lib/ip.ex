@@ -362,7 +362,9 @@ defmodule IP do
 
   ### Example:
   ```
-  ~i"10.0.x.3"m = {10, 0, 1, 3} # => matches x to 1
+  iex> import IP
+  iex> fn -> ~i"10.0.x.3"m = {10, 0, 1, 3}; x end.()
+  1
   ```
   """
   defmacro sigil_i({:<<>>, meta, [definition]}, 'm') do
