@@ -36,8 +36,9 @@
 - enable bang functions for mac address
 
 ## 0.2.2
-- add ~i//config mode that returns a ip/subnet tuple.
 
+- add `IP.Subnet.config_from_string*/1`
+- add ~i//config mode that returns a ip/subnet tuple.
 
 ## FUTURE VERSIONS
 
