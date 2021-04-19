@@ -1,9 +1,7 @@
 defmodule IPTest.SockAddrTest do
   use ExUnit.Case, async: true
-  doctest IP.Range
 
   alias IP.SockAddr
-  import IP
 
   describe "from_string!/1" do
     test "converts the socket address correctly" do

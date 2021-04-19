@@ -19,6 +19,26 @@ defmodule IP.Subnet do
   iex> import IP
   iex> Enum.map(~i"10.0.0.4/30", &IP.to_string/1)
   ["10.0.0.4", "10.0.0.5", "10.0.0.6", "10.0.0.7"]
+
+  ### Membership
+
+  In the `IP.Subnet` implementation of Enumerable, the `member?/2` callback
+  is implemented to provide a fastlane membership function.  You can thus
+  check IP address membership without having to enumerate all members of the
+  list first.
+
+  ```elixir
+  iex> import IP
+  iex> ~i"10.0.0.1" in ~i"10.0.0.0/24"
+  true
+  iex> ~i"10.0.0.1..10.0.0.33" in ~i"10.0.0.0/24"
+  true
+  iex> ~i"10.0.0.0/26" in ~i"10.0.0.0/24"
+  true
+  iex> ~i"10.0.0.1..10.0.1.1" in ~i"10.0.0.0/24"
+  false
+  iex> ~i"10.0.0.0/22" in ~i"10.0.0.0/24"
+  false
   ```
   """
 
@@ -61,6 +81,39 @@ defmodule IP.Subnet do
      (IP.is_ipv6(:erlang.map_get(:routing_prefix, subnet)) and
       :erlang.map_get(:bit_length, subnet) <= 128 and
       :erlang.map_get(:bit_length, subnet) >= 0))
+
+  import Bitwise, only: [<<<: 2]
+
+  @doc """
+  true if the `ip` parameter is inside the subnet.  IP must be a
+  single ip address; if you need a membership function
+  that accepts ranges or subnets, use `Kernel.in/2`.
+
+  Currently only works for ipv4 addresses.
+
+  usable in guards.
+
+  ```elixir
+  iex> import IP
+  iex> IP.Subnet.is_in(~i"10.0.0.0/24", ~i"10.0.0.2")
+  true
+  iex> IP.Subnet.is_in(~i"10.0.0.0/24", ~i"10.0.1.5")
+  false
+  ```
+  """
+  defguard is_in(subnet, ip) when IP.is_ipv4(ip) and ip >= :erlang.map_get(:routing_prefix, subnet)
+    and ((:erlang.map_get(:bit_length, subnet) == 32 and ip == :erlang.map_get(:routing_prefix, subnet))
+      or (:erlang.map_get(:bit_length, subnet) < 32 and :erlang.map_get(:bit_length, subnet) >= 24
+        and IP.octet_13(ip) == IP.octet_13(:erlang.map_get(:routing_prefix, subnet))
+        and IP.octet_4(ip) - IP.octet_4(:erlang.map_get(:routing_prefix, subnet)) < (1 <<< (32 - :erlang.map_get(:bit_length, subnet))))
+      or (:erlang.map_get(:bit_length, subnet) < 24 and :erlang.map_get(:bit_length, subnet) >= 16
+        and IP.octet_12(ip) == IP.octet_12(:erlang.map_get(:routing_prefix, subnet))
+        and IP.octet_34(ip) - IP.octet_34(:erlang.map_get(:routing_prefix, subnet)) < (1 <<< 32 - :erlang.map_get(:bit_length, subnet)))
+      or (:erlang.map_get(:bit_length, subnet) < 16 and :erlang.map_get(:bit_length, subnet) >= 8
+        and IP.octet_1(ip) == IP.octet_1(:erlang.map_get(:routing_prefix, subnet))
+        and IP.octet_24(ip) - IP.octet_24(:erlang.map_get(:routing_prefix, subnet)) < (1 <<< 32 - :erlang.map_get(:bit_length, subnet)))
+      or (:erlang.map_get(:bit_length, subnet) < 8 and :erlang.map_get(:bit_length, subnet) >= 0
+        and IP.octet_14(ip) - IP.octet_14(:erlang.map_get(:routing_prefix, subnet)) < (1 <<< 32 - :erlang.map_get(:bit_length, subnet))))
 
   @spec new(IP.v4, 0..32) :: t(IP.v4)
   @spec new(IP.v6, 0..128) :: t(IP.v6)
@@ -321,6 +374,7 @@ end
 
 defimpl Enumerable, for: IP.Subnet do
   alias IP.Subnet
+  alias IP.Range
 
   @spec count(Subnet.t) :: {:ok, non_neg_integer}
   def count(subnet) do
@@ -328,7 +382,13 @@ defimpl Enumerable, for: IP.Subnet do
     {:ok, 2 <<< (31 - subnet.bit_length)}
   end
 
-  @spec member?(Subnet.t, IP.addr) :: {:ok, boolean}
+  @spec member?(Subnet.t, IP.addr | Range.t | Subnet.t) :: {:ok, boolean}
+  def member?(subnet, other = %Range{}) do
+    {:ok, subnet.routing_prefix <= other.first and other.last <= Subnet.broadcast(subnet)}
+  end
+  def member?(subnet, other = %Subnet{}) do
+    {:ok, subnet.routing_prefix <= other.routing_prefix and Subnet.broadcast(other) <= Subnet.broadcast(subnet)}
+  end
   def member?(subnet, this_ip) do
     {:ok, subnet.routing_prefix <= this_ip and
           this_ip <= Subnet.broadcast(subnet)}

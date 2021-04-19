@@ -141,4 +141,40 @@ defmodule IPTest.IPSubnetTest do
       })
     end
   end
+
+  describe "is_in/2" do
+    test "works on fourth octet subnets" do
+      assert Subnet.is_in(~i"10.0.0.0/26", ~i"10.0.0.1")
+      refute Subnet.is_in(~i"10.0.0.0/26", ~i"10.0.0.127")
+      refute Subnet.is_in(~i"10.0.0.16/28", ~i"10.0.0.12")
+      assert Subnet.is_in(~i"10.0.0.0/24", ~i"10.0.0.1")
+      assert Subnet.is_in(~i"10.0.0.0/24", ~i"10.0.0.255")
+      refute Subnet.is_in(~i"10.0.0.0/24", ~i"10.0.1.0")
+    end
+
+    test "works on third octet subnets" do
+      assert Subnet.is_in(~i"10.0.0.0/20", ~i"10.0.1.1")
+      refute Subnet.is_in(~i"10.0.0.0/20", ~i"10.0.16.1")
+      assert Subnet.is_in(~i"10.0.0.0/16", ~i"10.0.1.1")
+      assert Subnet.is_in(~i"10.0.0.0/16", ~i"10.0.255.255")
+      refute Subnet.is_in(~i"10.0.0.0/16", ~i"10.1.0.0")
+    end
+
+    test "works on second octet subnets" do
+      assert Subnet.is_in(~i"10.0.0.0/12", ~i"10.7.0.1")
+      refute Subnet.is_in(~i"10.0.0.0/12", ~i"10.16.0.1")
+      assert Subnet.is_in(~i"10.0.0.0/8",  ~i"10.1.1.1")
+      assert Subnet.is_in(~i"10.0.0.0/8",  ~i"10.255.255.255")
+      refute Subnet.is_in(~i"10.0.0.0/8",  ~i"11.0.0.0")
+    end
+
+    test "works on all octet subnets" do
+      assert Subnet.is_in(~i"16.0.0.0/4",  ~i"16.0.0.0")
+      assert Subnet.is_in(~i"16.0.0.0/4",  ~i"16.255.255.255")
+      assert Subnet.is_in(~i"16.0.0.0/4",  ~i"17.0.0.1")
+      refute Subnet.is_in(~i"32.0.0.0/4",  ~i"17.0.0.1")
+      assert Subnet.is_in(~i"0.0.0.0/0",  ~i"1.1.1.1")
+      assert Subnet.is_in(~i"0.0.0.0/0",  ~i"255.255.255.255")
+    end
+  end
 end

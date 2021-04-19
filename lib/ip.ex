@@ -473,4 +473,60 @@ defmodule IP do
   @spec type(v6) :: :v6
   def type(addr) when is_ipv4(addr), do: :v4
   def type(addr) when is_ipv6(addr), do: :v6
+
+  # useful for some guards
+  @doc false
+  defmacro octet_4(ip) do
+    quote do elem(unquote(ip), 3) end
+  end
+
+  @doc false
+  defmacro octet_34(ip) do
+    quote do
+      Bitwise.<<<(elem(unquote(ip), 2), 8) +
+      elem(unquote(ip), 3)
+    end
+  end
+
+  @doc false
+  defmacro octet_24(ip) do
+    quote do
+      Bitwise.<<<(elem(unquote(ip), 1), 16) +
+      Bitwise.<<<(elem(unquote(ip), 2), 8) +
+      elem(unquote(ip), 3)
+    end
+  end
+
+  @doc false
+  defmacro octet_14(ip) do
+    quote do
+      Bitwise.<<<(elem(unquote(ip), 0), 24) +
+      Bitwise.<<<(elem(unquote(ip), 1), 16) +
+      Bitwise.<<<(elem(unquote(ip), 2), 8) +
+      elem(unquote(ip), 3)
+    end
+  end
+
+  @doc false
+  defmacro octet_1(ip) do
+    quote do Bitwise.<<<(elem(unquote(ip), 0), 24) end
+  end
+
+  @doc false
+  defmacro octet_12(ip) do
+    quote do
+      Bitwise.<<<(elem(unquote(ip), 0), 24) +
+      Bitwise.<<<(elem(unquote(ip), 1), 16)
+    end
+  end
+
+  @doc false
+  defmacro octet_13(ip) do
+    quote do
+      Bitwise.<<<(elem(unquote(ip), 0), 24) +
+      Bitwise.<<<(elem(unquote(ip), 1), 16) +
+      Bitwise.<<<(elem(unquote(ip), 2), 8)
+    end
+  end
+
 end

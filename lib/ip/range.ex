@@ -22,6 +22,27 @@ defmodule IP.Range do
   iex> Enum.map(~i"10.0.0.3..10.0.0.5", &IP.to_string/1)
   ["10.0.0.3", "10.0.0.4", "10.0.0.5"]
   ```
+
+  ### Membership
+
+  In the `IP.Subnet` implementation of Enumerable, the `member?/2` callback
+  is implemented to provide a fastlane membership function.  You can thus
+  check IP address membership without having to enumerate all members of the
+  list first.
+
+  ```elixir
+  iex> import IP
+  iex> ~i"10.0.0.1" in ~i"10.0.0.0..10.0.0.255"
+  true
+  iex> ~i"10.0.0.1..10.0.0.33" in ~i"10.0.0.0..10.0.0.255"
+  true
+  iex> ~i"10.0.0.0/26" in ~i"10.0.0.0..10.0.0.255"
+  true
+  iex> ~i"10.0.0.1..10.0.1.1" in ~i"10.0.0.0..10.0.0.255"
+  false
+  iex> ~i"10.0.0.0/22" in ~i"10.0.0.0..10.0.0.255"
+  false
+  ```
   """
 
   @enforce_keys [:first, :last]
@@ -64,6 +85,25 @@ defmodule IP.Range do
      (IP.is_ipv6(:erlang.map_get(:first, range)) and
      IP.is_ipv6(:erlang.map_get(:last, range)))) and
     (:erlang.map_get(:first, range) <= :erlang.map_get(:last, range))
+
+  @doc """
+  true if the `ip` parameter is inside the range.  IP must be a
+  single ip address; if you need a membership function
+  that accepts ranges or subnets, use `Kernel.in/2`.
+
+  usable in guards.
+
+  ```elixir
+  iex> import IP
+  iex> IP.Range.is_in(~i"10.0.0.1..10.0.0.3", ~i"10.0.0.2")
+  true
+  iex> IP.Range.is_in(~i"10.0.0.1..10.0.0.3", ~i"10.0.0.5")
+  false
+  ```
+  """
+  defguard is_in(range, ip) when
+    :erlang.map_get(:first, range) <= ip and
+    ip <= :erlang.map_get(:last, range)
 
   @spec new(IP.addr, IP.addr) :: t
   @doc """
@@ -165,13 +205,20 @@ end
 
 defimpl Enumerable, for: IP.Range do
   alias IP.Range
+  alias IP.Subnet
 
   @spec count(Range.t) :: {:ok, non_neg_integer}
   def count(range) do
     {:ok, IP.to_integer(range.last) - IP.to_integer(range.first) + 1}
   end
 
-  @spec member?(Range.t, IP.addr) :: {:ok, boolean}
+  @spec member?(Range.t, IP.addr | Range.t | Subnet.t) :: {:ok, boolean}
+  def member?(range, other = %Range{}) do
+    {:ok, range.first <= other.first and other.last <= range.last}
+  end
+  def member?(range, other = %Subnet{}) do
+    {:ok, range.first <= other.routing_prefix and Subnet.broadcast(other) <= range.last}
+  end
   def member?(range, this_ip) do
     {:ok, range.first <= this_ip and this_ip <= range.last}
   end
