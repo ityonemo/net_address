@@ -40,7 +40,13 @@
 - add `IP.Subnet.config_from_string*/1`
 - add ~i//config mode that returns a ip/subnet tuple.
 
+## 0.3.0
+- adds `is_in/2` guards for `IP.Range` and `IP.Subnet`
+- improves `Kernel.in/2` support for ranges and subnets
+
 ## FUTURE VERSIONS
 
 - support for ports (IPv6) with `:sockaddr_in6`
 - better `IP.random/1,2` algorithms
+- support for IPv6 in `IP.Range.is_in/2`
+- `IP.Range.is_subnet/2` guard

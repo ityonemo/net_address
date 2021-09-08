@@ -25,10 +25,12 @@ defmodule IP.Range do
 
   ### Membership
 
-  In the `IP.Subnet` implementation of Enumerable, the `member?/2` callback
+  In the `IP.Range` implementation of Enumerable, the `member?/2` callback
   is implemented to provide a fastlane membership function.  You can thus
   check IP address membership without having to enumerate all members of the
   list first.
+
+  see also `is_in/2`.
 
   ```elixir
   iex> import IP
@@ -87,9 +89,11 @@ defmodule IP.Range do
     (:erlang.map_get(:first, range) <= :erlang.map_get(:last, range))
 
   @doc """
-  true if the `ip` parameter is inside the range.  IP must be a
+  true if the `ip` parameter is inside the range.  `ip` must be a
   single ip address; if you need a membership function
   that accepts ranges or subnets, use `Kernel.in/2`.
+
+  Be aware of the parameter order, if you are using this after `import IP.Range`.
 
   usable in guards.
 

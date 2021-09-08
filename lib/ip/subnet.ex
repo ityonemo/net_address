@@ -19,6 +19,7 @@ defmodule IP.Subnet do
   iex> import IP
   iex> Enum.map(~i"10.0.0.4/30", &IP.to_string/1)
   ["10.0.0.4", "10.0.0.5", "10.0.0.6", "10.0.0.7"]
+  ```
 
   ### Membership
 
@@ -26,6 +27,8 @@ defmodule IP.Subnet do
   is implemented to provide a fastlane membership function.  You can thus
   check IP address membership without having to enumerate all members of the
   list first.
+
+  see also `is_in/2`.
 
   ```elixir
   iex> import IP
@@ -85,9 +88,11 @@ defmodule IP.Subnet do
   import Bitwise, only: [<<<: 2]
 
   @doc """
-  true if the `ip` parameter is inside the subnet.  IP must be a
+  true if the `ip` parameter is inside the subnet.  `ip` must be a
   single ip address; if you need a membership function
   that accepts ranges or subnets, use `Kernel.in/2`.
+
+  Be aware of the parameter order, if you are using this after `import IP.Range`.
 
   Currently only works for ipv4 addresses.
 
@@ -101,7 +106,7 @@ defmodule IP.Subnet do
   false
   ```
   """
-  defguard is_in(subnet, ip) when IP.is_ipv4(ip) and ip >= :erlang.map_get(:routing_prefix, subnet)
+  defguard is_in(subnet, ip) when ip >= :erlang.map_get(:routing_prefix, subnet) and IP.is_ipv4(ip)
     and ((:erlang.map_get(:bit_length, subnet) == 32 and ip == :erlang.map_get(:routing_prefix, subnet))
       or (:erlang.map_get(:bit_length, subnet) < 32 and :erlang.map_get(:bit_length, subnet) >= 24
         and IP.octet_13(ip) == IP.octet_13(:erlang.map_get(:routing_prefix, subnet))
@@ -190,9 +195,6 @@ defmodule IP.Subnet do
   @spec from_string!(String.t) :: t | no_return
   @doc """
   converts a string to an ip subnet.
-
-  The delimiter must be "..", as this is compatible with both
-  ipv4 and ipv6 addresses
 
   checks if the values are sensible.
 
