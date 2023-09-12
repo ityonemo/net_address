@@ -407,7 +407,7 @@ defmodule IP do
     |> Macro.escape()
   end
 
-  defp s(caller, msg), do: raise SyntaxError, caller ++ [description: msg]
+  defp s(caller, msg), do: raise(SyntaxError, caller ++ [description: msg])
 
   @ctx [context: Elixir, import: Kernel]
   defp token_to_matchv(<<x>> <> _ = int_str, meta) when x in ?0..?9 do
