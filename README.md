@@ -32,7 +32,7 @@ mix.exs file:
 ```elixir
 def deps do
   [
-    {:net_address, "~> 0.2.0"}
+    {:net_address, "~> 0.3.1"}
   ]
 end
 ```

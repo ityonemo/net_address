@@ -44,6 +44,9 @@
 - adds `is_in/2` guards for `IP.Range` and `IP.Subnet`
 - improves `Kernel.in/2` support for ranges and subnets
 
+## 0.3.1
+- compile time warning fixes
+
 ## FUTURE VERSIONS
 
 - support for ports (IPv6) with `:sockaddr_in6`
